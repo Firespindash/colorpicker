@@ -56,24 +56,61 @@ cairo_surface_t * c_surface;
 int window_width  = 0;
 int window_height = 0;
 
+int preview_width = 0;
+int preview_height = 0;
+int preview_x = 0;
+int preview_y = 0;
+
+gboolean
+parse_preview(const gchar* option_name, const gchar* value,
+         gpointer data, GError** error)
+{
+    char *restrict delim = "xX+";
+    char *token = strtok(value, delim);
+
+    int i;
+    for (i = 0; token != NULL; ++i) {
+        switch (i) {
+            case 0: preview_width  = atoi(token); break;
+            case 1: preview_height = atoi(token); break;
+            case 2: preview_x      = atoi(token); break;
+            case 3: preview_y      = atoi(token); break;
+        }
+
+        token = strtok(NULL, delim);
+    }
+
+    // Default size and location
+    if (i < 4) {
+        preview_width = 50;
+        preview_height = 50;
+        preview_x = 0;
+        preview_y = -50;
+    }
+
+    preview_rectangle = 1;
+    return 1;
+}
+
 GOptionEntry option_entries[] = {
     {
-        .long_name   = "short",
-        .arg         = G_OPTION_ARG_NONE,
-        .arg_data    = &short_format,
-        .description = "Use #RRGGBB output format",
+        .long_name       = "short",
+        .arg             = G_OPTION_ARG_NONE,
+        .arg_data        = &short_format,
+        .description     = "Use #RRGGBB output format",
     },
     {
-        .long_name   = "one-shot",
-        .arg         = G_OPTION_ARG_NONE,
-        .arg_data    = &one_shot,
-        .description = "Exit after picking one color",
+        .long_name       = "one-shot",
+        .arg             = G_OPTION_ARG_NONE,
+        .arg_data        = &one_shot,
+        .description     = "Exit after picking one color",
     },
     {
-        .long_name   = "preview",
-        .arg         = G_OPTION_ARG_NONE,
-        .arg_data    = &preview_rectangle,
-        .description = "Show the current color in preview rectangle",
+        .long_name       = "preview",
+        .arg             = G_OPTION_ARG_CALLBACK,
+        .arg_data        = &parse_preview,
+        .description     = "Show the current color in a preview rectangle",
+        .arg_description = "WxH+X+Y"
     },
     { }
 };
@@ -145,13 +182,20 @@ allow_input_passthrough(Window w)
 void
 preview_rectangle_redraw(double red, double green, double blue)
 {
-    int size = 50;
-    int x    = 0;
-    int y    = window_height - size;
+    int x = preview_x;
+    int y = preview_y;
 
-    // Just draw the rectangle on the left bottom corner
+    if (preview_x < 0) {
+        x += window_width;
+    }
+
+    if (preview_y < 0) {
+        y += window_height;
+    }
+
+    // Draw the rectangle at the user specified position
     cairo_set_source_rgb(c_state, red, green, blue);
-    cairo_rectangle(c_state, x, y, size, size);
+    cairo_rectangle(c_state, x, y, preview_width, preview_height);
     cairo_fill(c_state);
 }
 
