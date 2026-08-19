@@ -155,8 +155,8 @@ preview_rectangle_redraw(double red, double green, double blue)
     cairo_fill(c_state);
 }
 
-gint
-preview_rectangle_refresh()
+gboolean
+preview_rectangle_refresh(gpointer data)
 {
     // Mouse position
     int x, y;
@@ -179,8 +179,10 @@ preview_rectangle_refresh()
     // Release the overlay window
     XCompositeReleaseOverlayWindow(x_display, x_root_window);
 
-    // We need to return >0 for gtk to keep the timer alive
-    return 1;
+    gdk_image_destroy(pixel);
+
+    // Keep the timer alive
+    return TRUE;
 }
 
 void
